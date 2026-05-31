@@ -1,52 +1,28 @@
 {
-  "name": "barestripe_api",
+  "name": "primer-action",
   "version": "1.0.0",
-  "description": "The backend api for barestripe website.",
-  "main": "index.ts",
+  "description": "GitHub Action for primer vulnerability scanning",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts",
-    "start": "node ./dist/index.js",
-    "gcp-build": "tsc -p .",
-    "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
+    "package": "npm run build",
+    "lint": "eslint src/**/*.ts"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/callezenwaka/barestripe_api.git"
+    "url": "git+https://github.com/barestripehq/primer-action.git"
   },
-  "keywords": [
-    "Nodejs",
-    "Firebase",
-    "GCP",
-    "Typescript"
-  ],
-  "author": "callisezenwaka@gmail.com",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/callezenwaka/barestripe_api/issues"
-  },
-  "homepage": "https://github.com/callezenwaka/barestripe_api#readme",
+  "license": "MIT",
   "dependencies": {
-    "@google-cloud/firestore": "^6.3.0",
-    "@graphql-tools/merge": "^8.3.6",
-    "apollo-datasource-firestore": "^5.3.0",
-    "apollo-server-core": "^3.10.2",
-    "apollo-server-express": "^3.10.2",
-    "cors": "^2.8.5",
-    "express": "^4.18.1",
-    "graphql": "^16.6.0",
-    "graphql-tools": "^8.3.6",
-    "uuid": "^9.0.0"
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.0",
+    "@actions/http-client": "^2.2.3",
+    "@actions/tool-cache": "^2.0.2"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.12",
-    "@types/express": "^4.17.14",
-    "@types/graphql": "^14.5.0",
-    "@types/node": "^18.7.20",
-    "@types/uuid": "^8.3.4",
-    "dotenv": "^16.0.1",
-    "nodemon": "^2.0.20",
-    "ts-node": "^10.6.0",
-    "tslib": "^2.3.1"
+    "@types/node": "^24.0.0",
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.6.0"
   }
 }

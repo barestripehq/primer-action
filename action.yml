@@ -1,0 +1,48 @@
+name: 'primer'
+description: 'Scan manifests for vulnerabilities with primer before they hit your project'
+author: 'barestripehq'
+
+inputs:
+  file:
+    description: 'Manifest or lockfile to scan (e.g. requirements.txt, package-lock.json)'
+    required: true
+  threshold:
+    description: 'Minimum severity that blocks the check: critical, high, medium, low'
+    required: false
+    default: 'high'
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Security tab'
+    required: false
+    default: 'true'
+  comment-pr:
+    description: 'Post a findings summary as a PR comment (pull_request events only)'
+    required: false
+    default: 'true'
+  fail-on-findings:
+    description: 'Exit 1 when blocking findings are detected'
+    required: false
+    default: 'true'
+  primer-version:
+    description: 'Pin a specific primer release tag (e.g. v0.1.4). Defaults to latest.'
+    required: false
+    default: 'latest'
+  token:
+    description: 'GitHub token used for SARIF upload and PR comments'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  findings-count:
+    description: 'Total number of vulnerabilities found across all packages'
+  blocking-count:
+    description: 'Number of findings at or above the threshold'
+  sarif-path:
+    description: 'Path to the generated SARIF file'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
+
+branding:
+  icon: 'shield'
+  color: 'green'
