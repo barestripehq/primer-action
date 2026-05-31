@@ -2,3 +2,5 @@ node_modules/
 lib/
 *.js.map
 licenses.txt
+todo.md
+primer-report.json

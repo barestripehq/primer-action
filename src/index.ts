@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as zlib from 'zlib';
+import { assetName, buildCommentBody, COMMENT_MARKER } from './utils';
 
 // ---------------------------------------------------------------------------
 // Binary download
@@ -20,23 +21,6 @@ interface ReleaseAsset {
 interface Release {
   tag_name: string;
   assets: ReleaseAsset[];
-}
-
-function assetName(): string {
-  const platform = os.platform();
-  const arch = os.arch();
-
-  if (platform === 'linux') {
-    return arch === 'arm64'
-      ? 'primer-aarch64-unknown-linux-musl.tar.gz'
-      : 'primer-x86_64-unknown-linux-musl.tar.gz';
-  }
-  if (platform === 'darwin') {
-    return arch === 'arm64'
-      ? 'primer-aarch64-apple-darwin.tar.gz'
-      : 'primer-x86_64-apple-darwin.tar.gz';
-  }
-  throw new Error(`Unsupported platform: ${platform}/${arch}. Windows support arrives in a future release.`);
 }
 
 async function fetchRelease(version: string): Promise<Release> {
@@ -58,11 +42,14 @@ async function installPrimer(version: string): Promise<string> {
   const release = await fetchRelease(version);
   const resolvedVersion = release.tag_name;
 
+  const isZip = target.endsWith('.zip');
+  const binaryName = os.platform() === 'win32' ? 'primer.exe' : 'primer';
+
   // Return cached binary if available.
   const cached = tc.find('primer', resolvedVersion);
   if (cached) {
     core.info(`primer ${resolvedVersion} restored from cache`);
-    return path.join(cached, 'primer');
+    return path.join(cached, binaryName);
   }
 
   const asset = release.assets.find(a => a.name === target);
@@ -72,10 +59,12 @@ async function installPrimer(version: string): Promise<string> {
 
   core.info(`Downloading primer ${resolvedVersion} (${target})`);
   const downloaded = await tc.downloadTool(asset.browser_download_url);
-  const extracted = await tc.extractTar(downloaded);
+  const extracted = isZip
+    ? await tc.extractZip(downloaded)
+    : await tc.extractTar(downloaded, undefined, ['xJ']);
   const cachedDir = await tc.cacheDir(extracted, 'primer', resolvedVersion);
 
-  return path.join(cachedDir, 'primer');
+  return path.join(cachedDir, binaryName);
 }
 
 // ---------------------------------------------------------------------------
@@ -141,40 +130,6 @@ async function uploadSarif(token: string): Promise<void> {
 // PR comment
 // ---------------------------------------------------------------------------
 
-const COMMENT_MARKER = '<!-- primer-action-comment -->';
-
-function buildCommentBody(file: string, sarifPath: string): string {
-  if (!fs.existsSync(sarifPath)) {
-    return `${COMMENT_MARKER}\n### primer scan — ${file}\n\nNo findings.`;
-  }
-
-  const sarif = JSON.parse(fs.readFileSync(sarifPath, 'utf8'));
-  const results: Array<{ ruleId: string; level: string; message: { text: string } }> =
-    sarif?.runs?.[0]?.results ?? [];
-
-  if (results.length === 0) {
-    return `${COMMENT_MARKER}\n### primer scan — \`${file}\`\n\n✅ No vulnerabilities found.`;
-  }
-
-  const rows = results
-    .map(r => {
-      const level = r.level === 'error' ? '🔴' : r.level === 'warning' ? '🟡' : '🔵';
-      return `| ${level} | \`${r.ruleId}\` | ${r.message.text} |`;
-    })
-    .join('\n');
-
-  return [
-    COMMENT_MARKER,
-    `### primer scan — \`${file}\``,
-    '',
-    `| Severity | ID | Description |`,
-    `|----------|-----|-------------|`,
-    rows,
-    '',
-    `> Run \`primer scan --file ${file}\` locally for full details and fix commands.`,
-  ].join('\n');
-}
-
 async function postPrComment(token: string, file: string): Promise<void> {
   const context = github.context;
   if (!context.payload.pull_request) return;
@@ -190,7 +145,7 @@ async function postPrComment(token: string, file: string): Promise<void> {
   });
 
   const body = buildCommentBody(file, SARIF_FILE);
-  const existing = comments.find(c => c.body?.includes(COMMENT_MARKER));
+  const existing = comments.find((c: { body?: string | null }) => c.body?.includes(COMMENT_MARKER));
 
   if (existing) {
     await octokit.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
