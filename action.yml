@@ -23,7 +23,7 @@ inputs:
     required: false
     default: 'true'
   primer-version:
-    description: 'Pin a specific primer release tag (e.g. v0.1.4). Defaults to latest.'
+    description: 'Pin a specific primer release tag (e.g. v0.1.5). Defaults to latest.'
     required: false
     default: 'latest'
   token:
