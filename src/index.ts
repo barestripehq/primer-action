@@ -62,8 +62,21 @@ async function installPrimer(version: string): Promise<string> {
   const extracted = isZip
     ? await tc.extractZip(downloaded)
     : await tc.extractTar(downloaded, undefined, ['xJ']);
-  const cachedDir = await tc.cacheDir(extracted, 'primer', resolvedVersion);
 
+  // cargo-dist wraps Unix archives in a named subdirectory; zip puts the
+  // binary at the root. Find the directory that actually contains the binary.
+  let binaryDir = extracted;
+  if (!fs.existsSync(path.join(extracted, binaryName))) {
+    for (const entry of fs.readdirSync(extracted)) {
+      const candidate = path.join(extracted, entry, binaryName);
+      if (fs.existsSync(candidate)) {
+        binaryDir = path.join(extracted, entry);
+        break;
+      }
+    }
+  }
+
+  const cachedDir = await tc.cacheDir(binaryDir, 'primer', resolvedVersion);
   return path.join(cachedDir, binaryName);
 }
 

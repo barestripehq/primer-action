@@ -27772,7 +27772,17 @@ async function installPrimer(version) {
   info(`Downloading primer ${resolvedVersion} (${target})`);
   const downloaded = await downloadTool(asset.browser_download_url);
   const extracted = isZip ? await extractZip(downloaded) : await extractTar(downloaded, void 0, ["xJ"]);
-  const cachedDir = await cacheDir(extracted, "primer", resolvedVersion);
+  let binaryDir = extracted;
+  if (!fs5.existsSync(path5.join(extracted, binaryName))) {
+    for (const entry of fs5.readdirSync(extracted)) {
+      const candidate = path5.join(extracted, entry, binaryName);
+      if (fs5.existsSync(candidate)) {
+        binaryDir = path5.join(extracted, entry);
+        break;
+      }
+    }
+  }
+  const cachedDir = await cacheDir(binaryDir, "primer", resolvedVersion);
   return path5.join(cachedDir, binaryName);
 }
 var SARIF_FILE = "primer-results.sarif";
