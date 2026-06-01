@@ -1,0 +1,24 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  security-events: write   # SARIF upload to GitHub Security tab
+  pull-requests: write     # PR comment
+  actions: read
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Scan dependencies
+        uses: barestripehq/primer-action@v1
+        with:
+          file: package-lock.json
