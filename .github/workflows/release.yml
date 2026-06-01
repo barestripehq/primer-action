@@ -1,0 +1,19 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Update floating major tag
+        run: |
+          MAJOR=$(echo "${GITHUB_REF_NAME}" | cut -d. -f1)
+          git tag -f "$MAJOR"
+          git push origin "$MAJOR" --force
